@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Collaboration &amp; Sharing</title>
+  <meta name="description" content="The Open Augmented Reality Teaching Book">
+
+  <link rel="stylesheet" href="/ar-for-eu-book/css/main.css">
+  <link rel="canonical" href="https://klamma.github.io/ar-for-eu-book/chapter/sharing/">
+  <link rel="alternate" type="application/rss+xml" title="The Open Augmented Reality Teaching Book" href="https://klamma.github.io/ar-for-eu-book/feed.xml">
+
+  <!-- Visualization Libraries -->
+  <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+  <script src="https://code.highcharts.com/highcharts.js"></script>
+  <script src="https://code.highcharts.com/highcharts-more.js"></script>
+  <script src="https://code.highcharts.com/modules/exporting.js"></script>
+
+  <!-- formula rendering -->
+  <script type="text/javascript" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML">
+  </script>
+
+</head>
+
+
+  <body>
+
+    <header class="site-header">
+
+  <div class="wrapper">
+
+    <a class="site-title" href="/ar-for-eu-book/">The Open Augmented Reality Teaching Book</a>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+      <div class="trigger">
+	  <a class="page-link" href="https://codereality.net/">Code Reality</a>
+          <a class="page-link" href="/ar-for-eu-book/posts">Blog Posts</a>
+          <a class="page-link" href="/ar-for-eu-book/toc">Table of Content</a>
+          <a class="page-link" href="/ar-for-eu-book/references">Bibliography</a>
+          <a class="page-link" href="/ar-for-eu-book/contrib">Contributors</a>
+          <a class="page-link" href="/ar-for-eu-book/about">About</a>
+      </div>
+    </nav>
+
+  </div>
+
+</header>
+
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <article class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">Collaboration & Sharing</h1>
+  </header>
+
+  <div class="post-content">
+    
+<h2 id="collaboration-in-a-shared-virtual-environment">Collaboration in a Shared Virtual Environment</h2>
+
+<p>Synchronous collaboration in Mixed Reality is possible in a shared virtual environment.
+This means that the shown 3D objects are synchronised between the participants and changes are broadcast in real-time.
+As an example, if one participant picks up an object and moves it around, the other members of the shared environment should be able to perceive the motion of the object acurately and with a low latency.
+As simple as this sounds, there are a few considerations that need to be made in order to successfully realise such a system.</p>
+
+<h3 id="common-challenges-of-networking">Common Challenges of Networking</h3>
+
+<p>A series of common challenges can occur in the implementation of a shared environment.</p>
+
+<ul>
+  <li><strong>Network traffic</strong>:</li>
+  <li><strong>Unreliable connection</strong>:</li>
+  <li><strong>Broadcast of Changes</strong>:</li>
+  <li><strong>Session &amp; User management</strong>:</li>
+  <li><strong>Permissions</strong>:</li>
+  <li><strong>Conflict handling</strong>:</li>
+  <li><strong>Movement smoothing</strong>: To save network traffic, the position of an object is not broadcast every single frame but in larger intervals.
+If the receiving client just updates the position of the object to the values given in the latest package, the user will see the object teleport along the path instead of a smooth movement.
+To solve this, the implementation should interpolate between the received positions.
+There is a trade-off between the smoothness and the latency.
+If a package is received, this means that the object should be at the received position.
+But with a naive interpolation between the last position and the most-recently received position, the object can only start moving towards this position now.
+This means that the object is always one package behind.
+A more advanced solution is to also broadcast the velocity vector of the object.
+With the direction and speed that the object is currently moving, the receiving client can anticipate the next position by extrapolating the object’s position along this trajectory.
+When the next package arrives, the position is corrected.</li>
+</ul>
+
+<p>With poor connection, networked applications can show a series of common effects.
+Developers need to be aware of them and know how they are produced.</p>
+
+<ul>
+  <li><strong>Teleporting</strong>:</li>
+  <li><strong>Rubber-banding</strong>: With the described interpolation method which also works with the velocity vector of the object, an effect can occur called “rubber-banding”.
+It means that objects do not immediately react to large accelerations or decelerations but instead keep moving, before bounding back to their true position.
+We will look at this effect in a 1D example:
+There is an object which can only move left or right.
+It is moved on sender S and there is a receiver R.
+We assume one-way communication where the sender tells R about the updated positions.
+We will ignore the connection architecture and any network delay.
+This means that we can simply assume that an object which is sent at time point t by the sender is also received by the receiver at point t.
+At time point 0, a package is sent.
+It describes that the object is currently at position 0 and has a speed of 5.
+The package is received by r.
+It places the object at position 0 and starts moving it so that it will be at position 5 at time step 1.
+At time step one, S tells R that the object has actually moved to position 5 and still has a velocity of 5.
+R now gradually moves the object from position 5 to position 5 + 6 = 11 in a way that it will arrive at 11 at time point 2.
+At time step 2.5, the object comes to an abrupt halt on S at position 8.
+However, this is not immediately told R because packages are only sent at full time steps.
+So, at time step 3, S sends that the object is at position 8 with a speed of 0.
+But R has already moved the object to position 11 and now has to move it back to 8 in the next time interval.
+To the user which views the object on R this seems like a rubber-band effect since the object overshoots the target position before being pulled back to the point where it came to a halt.</li>
+</ul>
+
+<h3 id="unity-networking-libraries">Unity Networking Libraries</h3>
+
+<h4 id="photon">Photon</h4>
+
+<ul>
+  <li>General Introduction</li>
+  <li>Presentation of Sharing Possibilities</li>
+</ul>
+
+<h4 id="mirror">Mirror</h4>
+
+<ul>
+  <li>General Introduction</li>
+  <li>Presentation of Sharing Possibilities</li>
+</ul>
+
+<h3 id="example-application-viaproma">Example Application: VIAProMa</h3>
+
+<ul>
+  <li>Reference of agile project management (there is the entire)</li>
+  <li>Highlight of</li>
+  <li>Owner manager</li>
+  <li>When to use RPCs</li>
+</ul>
+
+<h3 id="exercise-creating-a-shared-application-in-photon">Exercise: Creating a Shared Application in Photon</h3>
+
+<p>In this exercise, we will create the game <a href="https://en.wikipedia.org/wiki/Draughts">Draughts</a> (also known as Checkers).
+This sample app will provide a way for two remote users to move playing stones on a board so that both participants can see each other’s moves.
+We will not implement the rules of the game in this exercise.
+Instead, the app provides the shared pieces and relies on players to move them according to the rules.
+If you want, you can implement rules, e.g. move restrictions once you completed the exercise.</p>
+
+<p>This exercise is split into three sections.
+The first part will show the setup of a shared environmnent for remote players.
+It will demonstrate how to set up a room system where content is only shared between users in one room and where multiple rooms can exist in parallel.
+In the second part, we will look at a basic way of implementing the shared logic using serialisers.
+The last part presents an alternative way for sending data over the network using Remote Procedure Calls (RPCs).</p>
+
+<h4 id="setting-up-the-project">Setting up the Project</h4>
+
+<ol>
+  <li>
+    <p>Create a new Unity project with the name “SharedDraughts” which uses the default <em>3D</em> template.
+In this exercise, we are using Unity 2018.3 because it is the current long-term support version that is compatible with the Mixed Reality Toolkit.
+If you are using the Unity Hub, you can select which Unity version should create the project by clicking on the down arrow on the <em>New</em> button.</p>
+
+    <p><img src="../../assets/figures/sharing/sharingExercise/CreateProject.png" alt="Create Project" />
+<img src="../../assets/figures/sharing/sharingExercise/ProjectName.png" alt="Project Name Menu" /></p>
+  </li>
+  <li>
+    <p>Download the Mixed Reality Toolkit.
+Go to the <a href="https://github.com/microsoft/MixedRealityToolkit-Unity/releases">releases</a> of the Mixed Realtiy Toolkit on GitHub and scroll to the latest version which is not marked as a pre-release.
+We are using the release <em>Microsoft Mixed Reality Toolkit v2.3.0</em>.
+In the Assets section of the release, download the Unity-package which has <em>Foundation</em> in its name as this is the base package.
+In our case, it is called * Microsoft.MixedReality.Toolkit.Unity.Foundation.2.3.0.unitypackage*.</p>
+
+    <p><a href="https://github.com/microsoft/MixedRealityToolkit-Unity/releases"><img src="../../assets/figures/sharing/sharingExercise/DownloadMRTK.png" alt="Download Mixed Reality Toolkit" /></a></p>
+  </li>
+  <li>
+    <p>Import the Mixed Reality Toolkit.
+To do this, perform a right-click in Unity’s Asset Browser and select <em>Import Package &gt; Custom Package</em> from the context menu.</p>
+
+    <p><img src="../../assets/figures/sharing/sharingExercise/ImportCustomPackage.png" alt="Import Custom Package" />
+After that select the Unity-package that you just downloaded in the opened file explorer and click <em>Open</em>.
+Unity will prepare the Unity-package for the import.
+Next, a dialog will be shown which allows you select which content should be imported.
+Click <em>All</em> to make sure that everythin is selected and then press <em>Import</em>.</p>
+
+    <p><img src="../../assets/figures/sharing/sharingExercise/ImportPackage.png" alt="Import Package Selection Menu" />
+Once the import has finished, you will find the new folders of the Mixed Reality Toolkit in your assets.</p>
+  </li>
+  <li></li>
+</ol>
+
+<h4 id="synchronising-data-with-serialisers">Synchronising Data with Serialisers</h4>
+
+<h4 id="synchronising-data-with-remote-procedure-calls">Synchronising Data with Remote Procedure Calls</h4>
+
+<p>Section two presents an alternative way of synchronizing the play stones.
+Both</p>
+
+<h3 id="world-anchors">World Anchors</h3>
+
+<ul>
+  <li>Concept of Spatial Anchors</li>
+</ul>
+
+<h4 id="azure-spatial-anchors">Azure Spatial Anchors</h4>
+
+<h4 id="arcore-world-anchors">ARCore World Anchors</h4>
+
+<h2 id="cross-platform-support">Cross-Platform Support</h2>
+
+<h3 id="mixed-reality-toolkit">Mixed Reality Toolkit</h3>
+
+<ul>
+  <li>Setting up the Mixed Reality Toolkit for cross-platform support</li>
+</ul>
+
+<h3 id="ar-foundation">AR Foundation</h3>
+
+  </div>
+
+</article>
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">The Open Augmented Reality Teaching Book</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li>The Open Augmented Reality Teaching Book</li>
+          <li><a href="mailto:klamma@dbis.rwth-aachen.de">klamma@dbis.rwth-aachen.de</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-2">
+        <ul class="social-media-list">
+          <li>
+            <a href="https://twitter.com/AR_FOR_EU"><span class="icon icon--twitter"><svg viewBox="0 0 16 16"><path fill="#828282" d="M15.969,3.058c-0.586,0.26-1.217,0.436-1.878,0.515c0.675-0.405,1.194-1.045,1.438-1.809c-0.632,0.375-1.332,0.647-2.076,0.793c-0.596-0.636-1.446-1.033-2.387-1.033c-1.806,0-3.27,1.464-3.27,3.27 c0,0.256,0.029,0.506,0.085,0.745C5.163,5.404,2.753,4.102,1.14,2.124C0.859,2.607,0.698,3.168,0.698,3.767 c0,1.134,0.577,2.135,1.455,2.722C1.616,6.472,1.112,6.325,0.671,6.08c0,0.014,0,0.027,0,0.041c0,1.584,1.127,2.906,2.623,3.206 C3.02,9.402,2.731,9.442,2.433,9.442c-0.211,0-0.416-0.021-0.615-0.059c0.416,1.299,1.624,2.245,3.055,2.271 c-1.119,0.877-2.529,1.4-4.061,1.4c-0.264,0-0.524-0.015-0.78-0.046c1.447,0.928,3.166,1.469,5.013,1.469 c6.015,0,9.304-4.983,9.304-9.304c0-0.142-0.003-0.283-0.009-0.423C14.976,4.29,15.531,3.714,15.969,3.058z"/></svg>
+</span><span class="username">AR_FOR_EU</span></a>
+
+          </li>
+          <li>
+            <a href="/ar-for-eu-book/feed.xml"><span class="icon icon-rss"><?xml version="1.0"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"> 
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="128px" height="128px" id="RSSicon" viewBox="0 0 256 256">
+<defs>
+<linearGradient x1="0.085" y1="0.085" x2="0.915" y2="0.915" id="RSSg">
+<stop  offset="0.0" stop-color="#E3702D"/><stop  offset="0.1071" stop-color="#EA7D31"/>
+<stop  offset="0.3503" stop-color="#F69537"/><stop  offset="0.5" stop-color="#FB9E3A"/>
+<stop  offset="0.7016" stop-color="#EA7C31"/><stop  offset="0.8866" stop-color="#DE642B"/>
+<stop  offset="1.0" stop-color="#D95B29"/>
+</linearGradient>
+</defs>
+<rect width="256" height="256" rx="55" ry="55" x="0"  y="0"  fill="#CC5D15"/>
+<rect width="246" height="246" rx="50" ry="50" x="5"  y="5"  fill="#F49C52"/>
+<rect width="236" height="236" rx="47" ry="47" x="10" y="10" fill="url(#RSSg)"/>
+<circle cx="68" cy="189" r="24" fill="#FFF"/>
+<path d="M160 213h-34a82 82 0 0 0 -82 -82v-34a116 116 0 0 1 116 116z" fill="#FFF"/>
+<path d="M184 213A140 140 0 0 0 44 73 V 38a175 175 0 0 1 175 175z" fill="#FFF"/>
+</svg>
+</span><span class="username">Subscribe</span></a>
+
+          </li>
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-3">
+        <p>The Open Augmented Reality Teaching Book</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+
+
+    <!-- load visualizations (at the end so that the div elements are known here) -->
+    
+  </body>
+
+</html>
